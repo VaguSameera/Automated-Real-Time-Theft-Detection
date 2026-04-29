@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register | Retail Theft Detection</title>
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #212842;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .auth-box {
+      background: #ffffff;
+      padding: 45px 40px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+      animation: fadeIn 0.6s ease;
+    }
+
+    .auth-box h2 {
+      font-size: 26px;
+      margin-bottom: 10px;
+      color: #0f172a;
+    }
+
+    .auth-subtitle {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 30px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 12px;
+      margin-bottom: 18px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 8px;
+      background: #1e40af;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    .error {
+      color: red;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .bottom-link {
+      margin-top: 18px;
+      font-size: 14px;
+    }
+
+    .bottom-link a {
+      color: #1e40af;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .bottom-link a:hover {
+      text-decoration: underline;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="auth-box">
+    <h2>Create Account</h2>
+    <p class="auth-subtitle">
+      Register to access the Retail Theft Detection System
+    </p>
+
+    <form action="/register" method="post">
+      <input type="email" name="email" placeholder="Email Address" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Register</button>
+    </form>
+
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <p class="bottom-link">
+      Already have an account?
+      <a href="/login">Login here</a>
+    </p>
+  </div>
+
+</body>
+</html>

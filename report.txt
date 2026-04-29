@@ -1,0 +1,194 @@
+pip install fpdf
+
+#app.py
+from flask import Flask, render_template, Response, request, redirect, url_for, jsonify, send_file
+from ultralytics import YOLO
+import numpy as np
+import imutils
+import cv2
+import os
+import time
+import uuid
+from fpdf import FPDF
+from werkzeug.utils import secure_filename
+
+app = Flask(__name__)
+
+# --- CONFIGURATION ---
+UPLOAD_FOLDER = 'uploads'
+DETECTIONS_FOLDER = 'static/detections'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(DETECTIONS_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+current_video_path = None 
+mymodel = YOLO(r"configs\shoplifting_wights.pt")
+detection_history = [] # Persists until CMD is closed
+
+# --- PDF GENERATOR CLASS ---
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 16)
+        self.cell(0, 10, 'SHIELD AI - INCIDENT REPORT', 0, 1, 'C')
+        self.set_font('Arial', 'I', 10)
+        self.cell(0, 10, f'Generated on: {time.strftime("%Y-%m-%d %H:%M:%S")}', 0, 1, 'C')
+        self.ln(10)
+
+# --- ROUTES ---
+
+@app.route('/download_report')
+def download_report():
+    global detection_history
+    if not detection_history:
+        return "No detections to report", 400
+
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    # Table Header
+    pdf.set_fill_color(129, 140, 248) # Your accent color
+    pdf.set_text_color(255, 255, 255)
+    pdf.cell(40, 10, 'Timestamp', 1, 0, 'C', True)
+    pdf.cell(30, 10, 'Conf.', 1, 0, 'C', True)
+    pdf.cell(120, 10, 'Visual Evidence', 1, 1, 'C', True)
+
+    # Table Rows
+    pdf.set_text_color(0, 0, 0)
+    for log in detection_history:
+        pdf.cell(40, 30, log['time'], 1, 0, 'C')
+        pdf.cell(30, 30, f"{log['conf']}%", 1, 0, 'C')
+        
+        # Add the image thumbnail to the PDF
+        img_path = os.path.join(DETECTIONS_FOLDER, log['image'])
+        if os.path.exists(img_path):
+            # x, y, width, height
+            pdf.image(img_path, x=pdf.get_x() + 35, y=pdf.get_y() + 2, w=50)
+        
+        pdf.cell(120, 30, '', 1, 1)
+
+    report_path = "incident_report.pdf"
+    pdf.output(report_path)
+    return send_file(report_path, as_attachment=True)
+
+# ... (Keep all your existing index, detect, team, about, and video_feed routes) ...
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    global current_video_path
+    if request.method == 'POST':
+        file = request.files.get('file')
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            current_video_path = filepath
+            return render_template('home.html', active_page='home', video_ready=True, filename=filename)
+    return render_template('home.html', active_page='home', video_ready=False, filename="NO INPUT")
+
+@app.route('/detect')
+def detect_page():
+    return render_template('detect.html', active_page='detect')
+
+@app.route('/get_detections')
+def get_detections():
+    global detection_history
+    after = request.args.get('after', default=0, type=int)
+    new_logs = detection_history[after:]
+    return jsonify({"logs": new_logs, "total_count": len(detection_history)})
+
+@app.route('/team')
+def team(): return render_template('team.html', active_page='team')
+
+@app.route('/about')
+def about(): return render_template('about.html', active_page='about')
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+
+----------------------------------------------------------------------
+#detect.html
+{% extends "layout.html" %}
+{% block content %}
+<div class="glass-card" style="height: 100%; display: flex; flex-direction: column; padding: 30px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin: 0; color: var(--accent); letter-spacing: 1px;">INCIDENT HISTORY</h2>
+            <p style="margin: 5px 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">Visual proof captured for every unique detection.</p>
+        </div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <a href="/download_report" style="text-decoration: none; background: rgba(129, 140, 248, 0.1); border: 1px solid var(--accent); color: var(--accent); padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; transition: 0.3s;" onmouseover="this.style.background='var(--accent)'; this.style.color='#fff';">
+                📥 DOWNLOAD PDF
+            </a>
+            <div id="log-counter" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem;">
+                Total Events: 0
+            </div>
+        </div>
+    </div>
+    
+    <div style="flex: 1; overflow-y: auto; border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="position: sticky; top: 0; background: #0f0f12; z-index: 10;">
+                <tr style="border-bottom: 1px solid var(--glass-border); color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">
+                    <th style="padding: 20px;">Timestamp</th>
+                    <th>Classification</th>
+                    <th>Confidence</th>
+                    <th>Visual Evidence</th>
+                </tr>
+            </thead>
+            <tbody id="incident-table" style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let lastLoggedIndex = 0;
+
+    function fetchUpdates() {
+        fetch(`/get_detections?after=${lastLoggedIndex}`)
+            .then(res => res.json())
+            .then(data => {
+                const table = document.getElementById('incident-table');
+                const counter = document.getElementById('log-counter');
+                
+                if (data.logs.length > 0) {
+                    data.logs.forEach(log => {
+                        const row = table.insertRow(0);
+                        row.style.borderBottom = "1px solid rgba(255,255,255,0.03)";
+                        row.style.animation = "slideIn 0.3s ease-out forwards";
+                        
+                        row.innerHTML = `
+                            <td style="padding: 18px; color: var(--accent);">${log.time}</td>
+                            <td style="color: #ef4444; font-weight: 700;">🚨 SHOPLIFTING DETECTED</td>
+                            <td style="color: var(--text-primary);">${log.conf}%</td>
+                            <td style="padding: 10px;">
+                                <div style="width: 110px; height: 65px; border-radius: 8px; overflow: hidden; border: 2px solid rgba(239, 68, 68, 0.3); background: #000;">
+                                    <img src="/static/detections/${log.image}" 
+                                         style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;" 
+                                         onclick="window.open(this.src)">
+                                </div>
+                            </td>
+                        `;
+                    });
+                    lastLoggedIndex = data.total_count;
+                    counter.innerText = `Total Events: ${lastLoggedIndex}`;
+                }
+            });
+    }
+
+    fetchUpdates();
+    setInterval(fetchUpdates, 2000);
+</script>
+
+<style>
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    #incident-table tr:hover { background: rgba(129, 140, 248, 0.03); }
+    div::-webkit-scrollbar { width: 6px; }
+    div::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+</style>
+{% endblock %}

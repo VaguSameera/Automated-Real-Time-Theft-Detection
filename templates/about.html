@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="glass-card" style="height: 100%; padding: 50px; overflow-y: auto;">
+    <div style="max-width: 1000px; margin: 0 auto;">
+        
+        <div style="text-align: center; margin-bottom: 40px;">
+            <h1 style="color: var(--accent); font-size: 2.5rem; letter-spacing: 2px; margin-bottom: 10px;">PROJECT ANALYSIS</h1>
+            <div style="width: 60px; height: 4px; background: var(--accent); margin: 0 auto; border-radius: 2px;"></div>
+        </div>
+
+        <section style="margin-bottom: 50px;">
+            <h3 style="color: var(--accent); text-transform: uppercase; font-size: 0.9rem; letter-spacing: 1px;">Overview</h3>
+            <p style="line-height: 1.8; color: #d4d4d8; font-size: 1.1rem; margin-top: 15px;">
+                <strong>Shield AI</strong> is a real-time surveillance solution designed to mitigate retail loss by identifying suspicious shoplifting behaviors. 
+                Utilizing the <strong>YOLOv8 Nano</strong> model, the system processes live video feeds to detect Class 1 (Shoplifting) and Class 0 (Normal) behaviors with high precision.
+            </p>
+        </section>
+
+        <section style="margin-bottom: 50px;">
+            <h3 style="color: var(--accent); text-transform: uppercase; font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 20px;">System Architecture</h3>
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; text-align: center;">
+                <img src="{{ url_for('static', filename='architecture.png') }}" 
+                     alt="System Architecture" 
+                     style="max-width: 100%; border-radius: 8px; filter: drop-shadow(0 0 15px rgba(129, 140, 248, 0.2));">
+            </div>
+            
+        </section>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px;">
+            <div style="background: rgba(255,255,255,0.02); padding: 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05);">
+                <h4 style="color: var(--accent); margin-top: 0;">AI Engine</h4>
+                <ul style="color: var(--text-secondary); line-height: 2.2; font-size: 0.9rem;">
+                    <li><strong>Model:</strong> YOLOv8 (You Only Look Once)</li>
+                    <li><strong>Framework:</strong> Ultralytics & PyTorch</li>
+                    <li><strong>Classes:</strong> Normal Behavior vs. Shoplifting</li>
+                    <li><strong>Inference:</strong> Real-time frame analysis</li>
+                </ul>
+            </div>
+            <div style="background: rgba(255,255,255,0.02); padding: 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05);">
+                <h4 style="color: var(--accent); margin-top: 0;">Backend Architecture</h4>
+                <ul style="color: var(--text-secondary); line-height: 2.2; font-size: 0.9rem;">
+                    <li><strong>Server:</strong> Flask (Python)</li>
+                    <li><strong>Streaming:</strong> Multipart Mixed-Replace</li>
+                    <li><strong>Image Processing:</strong> OpenCV & imutils</li>
+                    <li><strong>Data Handling:</strong> Persistent Session Logging</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-top: 50px; padding: 30px; background: rgba(129, 140, 248, 0.05); border-radius: 15px; border-left: 4px solid var(--accent);">
+            <h4 style="margin-top: 0; color: var(--accent);">Detection Logic</h4>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                The video stream is optimized to a width of 500px to ensure low-latency processing. 
+                The system skips every 2 frames to maintain 30FPS throughput on standard hardware. 
+                When a threat is confirmed with a confidence score above 40%, the system captures a high-resolution screenshot and logs the timestamp to the "Detect" history.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Scrollbar Polish */
+    div::-webkit-scrollbar { width: 6px; }
+    div::-webkit-scrollbar-track { background: transparent; }
+    div::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+</style>
+{% endblock %}

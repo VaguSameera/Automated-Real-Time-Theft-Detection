@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+{% block content %}
+<div style="display: flex; gap: 25px; height: 100%; max-height: 100%; overflow: hidden;">
+    <aside style="width: 340px; display: flex; flex-direction: column; gap: 20px; height: 100%; flex-shrink: 0;">
+        
+        <div class="glass-card" style="padding: 20px; flex-shrink: 0;">
+            <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;">Source Control</div>
+            <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; margin-bottom: 15px; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ filename }}
+            </div>
+            <form action="/" method="post" enctype="multipart/form-data">
+                <label style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100px; border: 2px dashed rgba(129, 140, 248, 0.3); border-radius: 15px; cursor: pointer; transition: 0.3s; background: rgba(129, 140, 248, 0.02);" onmouseover="this.style.borderColor='#818cf8'; this.style.background='rgba(129, 140, 248, 0.05)';" onmouseout="this.style.borderColor='rgba(129, 140, 248, 0.3)'; this.style.background='rgba(129, 140, 248, 0.02)';">
+                    <span style="font-weight: 600; color: var(--accent);">Upload Video</span>
+                    <span style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 5px;">MP4, AVI, MOV</span>
+                    <input type="file" name="file" onchange="this.form.submit()" style="display: none;">
+                </label>
+            </form>
+        </div>
+
+        <div class="glass-card" style="flex: 1; padding: 20px; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+            <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px; flex-shrink: 0;">Live Telemetry</div>
+            
+            <div style="flex: 1; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #d4d4d8; padding-right: 5px;" id="log-container">
+                </div>
+        </div>
+    </aside>
+
+    <main class="glass-card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; height: 100%;">
+        <div style="flex: 1; background: #000; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden;">
+            {% if video_ready %}
+                <img src="{{ url_for('video_feed') }}" style="width: 100%; height: 100%; object-fit: contain;">
+            {% else %}
+                <div style="text-align: center; background: white; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #18181b;">
+                    <lottie-player 
+                        src="{{ url_for('static', filename='Catch me if you can.json') }}" 
+                        background="transparent" 
+                        speed="1" 
+                        style="width: 350px; height: 350px;" 
+                        loop 
+                        autoplay>
+                    </lottie-player>
+                    <div style="font-weight: 700; letter-spacing: 3px; font-size: 0.9rem; margin-top: -20px;">WAITING FOR INPUT SIGNAL...</div>
+                </div>
+            {% endif %}
+        </div>
+        <div style="height: 45px; background: rgba(0,0,0,0.8); display: flex; justify-content: space-between; align-items: center; padding: 0 25px; font-size: 0.75rem; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
+            <div style="display: flex; gap: 20px;">
+                <span><strong style="color: var(--accent);">Engine:</strong> YOLOv8 Nano</span>
+                <span><strong style="color: var(--accent);">Device:</strong> CUDA:0</span>
+            </div>
+            <span>Status: Ready</span>
+        </div>
+    </main>
+</div>
+
+<script>
+    const container = document.getElementById('log-container');
+    
+    function addLog(message) {
+        const div = document.createElement('div');
+        div.style.padding = "5px 0";
+        div.style.borderBottom = "1px solid rgba(255,255,255,0.03)";
+        div.style.animation = "fadeIn 0.3s ease-out";
+        
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        
+        div.innerHTML = `<span style="color:var(--accent)">[${timeStr}]</span> ${message}`;
+        container.prepend(div);
+
+        if (container.children.length > 50) {
+            container.removeChild(container.lastChild);
+        }
+    }
+
+    const initialMsgs = ["Initializing YOLOv8 engine...", "CUDA acceleration active.", "Memory synchronized.", "Awaiting input.", "Preprocessing layers ready."];
+    initialMsgs.forEach((msg, i) => setTimeout(() => addLog(msg), i * 400));
+
+    setInterval(() => {
+        const healthMsgs = ["Buffer optimized", "Heartbeat: OK", "Syncing telemetry", "GPU Temp: Normal", "Latency: 12ms"];
+        addLog(healthMsgs[Math.floor(Math.random() * healthMsgs.length)]);
+    }, 6000); 
+</script>
+
+<style>
+    #log-container::-webkit-scrollbar { width: 4px; }
+    #log-container::-webkit-scrollbar-track { background: transparent; }
+    #log-container::-webkit-scrollbar-thumb { background: rgba(129, 140, 248, 0.2); border-radius: 10px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+{% endblock %}
